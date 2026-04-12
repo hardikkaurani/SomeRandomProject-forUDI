@@ -27,14 +27,20 @@ const List<String> _monthLabels = <String>[
   'Dec',
 ];
 
-final RegExp _keywordPattern = RegExp(
-  r'(credited|received|payout)',
+final RegExp _incomeKeywordPattern = RegExp(
+  r'(credited|received|payout|added)',
+  caseSensitive: false,
+);
+final RegExp _expenseKeywordPattern = RegExp(
+  r'(debited|sent|transferred)',
   caseSensitive: false,
 );
 final RegExp _amountPattern = RegExp(
   '(?:$_rupeeSymbol|Rs\\.?|INR)\\s?([\\d,]+(?:\\.\\d{1,2})?)',
   caseSensitive: false,
 );
+
+enum TransactionType { income, expense }
 
 typedef SmsType = AndroidSMSType;
 typedef SmsMessage = AndroidSMSMessage;
@@ -323,7 +329,18 @@ class _IncomeSmsPageState extends State<IncomeSmsPage> {
 
   IncomeSmsEntry? _mapMessage(SmsMessage message, {required bool isLive}) {
     final String body = message.body.trim();
-    if (body.isEmpty || !_keywordPattern.hasMatch(body)) {
+    if (body.isEmpty) {
+      return null;
+    }
+
+    TransactionType? transactionType;
+    if (_incomeKeywordPattern.hasMatch(body)) {
+      transactionType = TransactionType.income;
+    } else if (_expenseKeywordPattern.hasMatch(body)) {
+      transactionType = TransactionType.expense;
+    }
+
+    if (transactionType == null) {
       return null;
     }
 
@@ -342,6 +359,7 @@ class _IncomeSmsPageState extends State<IncomeSmsPage> {
       body: body,
       date: sentAt,
       isLive: isLive,
+      transactionType: transactionType,
     );
   }
 
@@ -476,6 +494,7 @@ class IncomeSmsEntry {
     required this.body,
     required this.date,
     required this.isLive,
+    required this.transactionType,
   });
 
   final String amount;
@@ -483,6 +502,7 @@ class IncomeSmsEntry {
   final String body;
   final DateTime date;
   final bool isLive;
+  final TransactionType transactionType;
 }
 
 class _IncomeMessageTile extends StatelessWidget {
@@ -698,7 +718,7 @@ class _EmptyMatchesView extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Messages must contain "credited", "received", or "payout" and also include a $_rupeeSymbol amount.',
+                  'Messages must contain "credited", "received", "payout", or "added" and also include a $_rupeeSymbol amount.',
                   textAlign: TextAlign.center,
                 ),
               ],
