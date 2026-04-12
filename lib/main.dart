@@ -5,6 +5,9 @@ import 'package:android_sms_reader/android_sms_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'models/transaction.dart';
+import 'services/database_service.dart';
+
 const MethodChannel _platformChannel = MethodChannel(
   'sms_parser_basically/device_settings',
 );
@@ -142,6 +145,17 @@ class _IncomeSmsPageState extends State<IncomeSmsPage> {
   }
 
   Future<void> _bootstrap() async {
+    // Initialize database
+    try {
+      await DatabaseService.database;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Database initialization failed: $e';
+      });
+      return;
+    }
+
     if (!_isAndroid) {
       setState(() {
         _isLoading = false;
@@ -350,17 +364,51 @@ class _IncomeSmsPageState extends State<IncomeSmsPage> {
     }
 
     final DateTime sentAt = DateTime.fromMillisecondsSinceEpoch(message.date);
+    final String amountStr = '$_rupeeSymbol${amountMatch.group(1)!}';
+    final String senderStr = message.address.trim().isEmpty
+        ? 'Unknown sender'
+        : message.address;
 
-    return IncomeSmsEntry(
-      amount: '$_rupeeSymbol${amountMatch.group(1)!}',
-      address: message.address.trim().isEmpty
-          ? 'Unknown sender'
-          : message.address,
+    final IncomeSmsEntry entry = IncomeSmsEntry(
+      amount: amountStr,
+      address: senderStr,
       body: body,
       date: sentAt,
       isLive: isLive,
       transactionType: transactionType,
     );
+
+    // Save to database
+    _saveTransactionToDatabase(
+      amountStr,
+      senderStr,
+      body,
+      transactionType.name,
+      sentAt,
+    );
+
+    return entry;
+  }
+
+  Future<void> _saveTransactionToDatabase(
+    String amount,
+    String sender,
+    String messageBody,
+    String transactionType,
+    DateTime date,
+  ) async {
+    try {
+      final transaction = Transaction(
+        amount: amount,
+        sender: sender,
+        messageBody: messageBody,
+        transactionType: transactionType,
+        date: date,
+      );
+      await DatabaseService.insertTransaction(transaction);
+    } catch (e) {
+      // Silently handle duplicate transactions
+    }
   }
 
   String _formatDate(IncomeSmsEntry entry) {
