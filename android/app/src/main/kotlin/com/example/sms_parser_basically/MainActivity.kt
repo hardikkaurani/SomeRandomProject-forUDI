@@ -1,32 +1,24 @@
 package com.example.sms_parser_basically
 
 import android.Manifest
-import android.content.BroadcastReceiver
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.provider.Telephony
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity(), EventChannel.StreamHandler {
+class MainActivity : FlutterActivity() {
     private var pendingPermissionResult: MethodChannel.Result? = null
-    private var liveSmsReceiver: BroadcastReceiver? = null
-    private var liveSmsSink: EventChannel.EventSink? = null
 
     companion object {
         private const val SMS_PERMISSION_REQUEST_CODE = 1107
         private const val DEVICE_SETTINGS_CHANNEL = "sms_parser_basically/device_settings"
-        private const val LIVE_SMS_CHANNEL = "sms_parser_basically/live_sms"
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -43,11 +35,6 @@ class MainActivity : FlutterActivity(), EventChannel.StreamHandler {
                 else -> result.notImplemented()
             }
         }
-
-        EventChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            LIVE_SMS_CHANNEL
-        ).setStreamHandler(this)
     }
 
     private fun requestSmsPermissions(result: MethodChannel.Result) {
@@ -121,63 +108,6 @@ class MainActivity : FlutterActivity(), EventChannel.StreamHandler {
 
         return false
     }
-
-    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        liveSmsSink = events
-        registerLiveSmsReceiver()
-    }
-
-    override fun onCancel(arguments: Any?) {
-        liveSmsSink = null
-        unregisterLiveSmsReceiver()
-    }
-
-    private fun registerLiveSmsReceiver() {
-        if (liveSmsReceiver != null) {
-            return
-        }
-
-        liveSmsReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
-                    return
-                }
-
-                val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-                for (sms in messages) {
-                    liveSmsSink?.success(
-                        mapOf(
-                            "id" to 0,
-                            "address" to (sms.originatingAddress ?: ""),
-                            "body" to (sms.messageBody ?: ""),
-                            "date" to sms.timestampMillis,
-                            "type" to "inbox"
-                        )
-                    )
-                }
-            }
-        }
-
-        val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(liveSmsReceiver, filter, RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(liveSmsReceiver, filter)
-        }
-    }
-
-    private fun unregisterLiveSmsReceiver() {
-        val receiver = liveSmsReceiver ?: return
-
-        try {
-            unregisterReceiver(receiver)
-        } catch (_: IllegalArgumentException) {
-        }
-
-        liveSmsReceiver = null
-    }
-
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -194,10 +124,5 @@ class MainActivity : FlutterActivity(), EventChannel.StreamHandler {
 
         pendingPermissionResult?.success(granted)
         pendingPermissionResult = null
-    }
-
-    override fun onDestroy() {
-        unregisterLiveSmsReceiver()
-        super.onDestroy()
     }
 }

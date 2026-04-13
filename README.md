@@ -118,6 +118,9 @@ This project prioritizes:
 
 ## 📂 Setup Instructions
 
-```bash
-flutter pub get
-flutter run
+```mermaid
+flowchart TD
+    A["git clone https://github.com/Thrizzio/SomeRandomProject-forUDI.git"] --> B["cd SomeRandomProject-forUDI"]
+    B --> C["flutter pub get"]
+    C --> D["Start Emulator / Connect Device"]
+    D --> E["flutter run"]
