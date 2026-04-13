@@ -94,7 +94,11 @@ class SmsParser {
     if (amount == null) return null;
     final date = extractDate(message);
     if (date == null) return null;
-    return ParsedIncome(amount: amount, source: extractSource(body), date: date);
+    return ParsedIncome(
+      amount: amount,
+      source: extractSource(body),
+      date: date,
+    );
   }
 }
 
@@ -140,7 +144,6 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
     );
   }
 
-  // ── Emulator test button ── remove before release
   void _injectTestSms(String body) {
     final amount = SmsParser.extractAmount(body);
     if (amount == null) {
@@ -149,54 +152,25 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
       );
       return;
     }
-    _onNewIncome(ParsedIncome(
-      amount: amount,
-      source: SmsParser.extractSource(body),
-      date: DateTime.now(),
-    ));
+
+    _onNewIncome(
+      ParsedIncome(
+        amount: amount,
+        source: SmsParser.extractSource(body),
+        date: DateTime.now(),
+      ),
+    );
   }
 
   @override
   void initState() {
-    startListening();
     super.initState();
+    startListening();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gig Income Tracker"),
-        actions: widget.appBarActions,
-      ),
-      body: Column(
-        children: [
-          // ── Test buttons (emulator only) ──────────────────────────
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                _testBtn("Swiggy ₹850",
-                    "Your account has been credited with ₹850.00. Payment received from Swiggy settlement."),
-                _testBtn("Zomato INR 1200",
-                    "INR 1,200.50 credited to your account. Zomato payout for week ending 10-Apr-2025."),
-                _testBtn("Uber Rs 450",
-                    "Rs. 450 deposited to your a/c. Uber earnings settlement."),
-              ],
-            ),
-          ),
-
-          // ── Total income bar ──────────────────────────────────────
-          if (_incomes.isNotEmpty)
-            Container(
-              width: double.infinity,
-              color: Colors.green.shade50,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
       appBar: AppBar(
         title: const Text("Gig Income Tracker"),
         actions: widget.appBarActions,
@@ -210,7 +184,6 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Column(
                       children: [
-                        // Test buttons for demo
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
@@ -233,13 +206,11 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        // Income summary
                         IncomeSummaryCard(
                           count: _incomes.length,
                           total: _totalIncome,
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        // Recent transactions header
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -248,11 +219,11 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        // Transaction list
                         ..._incomes.take(5).map((income) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: AppSpacing.md),
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.md,
+                            ),
                             child: TransactionCard(
                               source: income.source,
                               amount: income.amount,
@@ -260,12 +231,12 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
                             ),
                           );
                         }),
-                        if (_incomes.length > 5) ...[const SizedBox(height: AppSpacing.lg)],
+                        if (_incomes.length > 5)
+                          const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                   ),
-                  // Tax section
-                  if (_taxResult != null) ...[_buildTaxSection(_taxResult!)],
+                  if (_taxResult != null) _buildTaxSection(_taxResult!),
                 ],
               ),
             ),
@@ -341,8 +312,10 @@ class _ReadSmsScreenState extends State<ReadSmsScreen> {
             taxableIncome: result.taxableIncome,
             taxPayable: result.taxPayable,
           ),
-          if (result.suggestions.isNotEmpty) ...[const SizedBox(height: AppSpacing.lg)],
-          if (result.suggestions.isNotEmpty) ...[_buildSuggestionsSection(result)],
+          if (result.suggestions.isNotEmpty)
+            const SizedBox(height: AppSpacing.lg),
+          if (result.suggestions.isNotEmpty)
+            _buildSuggestionsSection(result),
         ],
       ),
     );
