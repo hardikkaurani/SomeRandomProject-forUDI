@@ -30,7 +30,7 @@
 ### *SMS-Powered Income Tracker & Tax Estimator for Gig Workers*
 
 > **Extract → Classify → Aggregate → File**
-> Turn your inbox into a tax-ready income ledger — no accountant needed.
+> Turn your inbox into a tax-ready income ledger — no accountant needed !
 
 <br />
 
